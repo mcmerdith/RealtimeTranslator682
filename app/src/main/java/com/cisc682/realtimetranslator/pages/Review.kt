@@ -33,9 +33,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
-import com.cisc682.realtimetranslator.ui.components.ReviewCard
-import com.cisc682.realtimetranslator.ui.components.ReviewTopBar
 import com.cisc682.realtimetranslator.ui.components.SpeechBubble
+import com.cisc682.realtimetranslator.ui.components.ReviewCard
+import com.cisc682.realtimetranslator.ui.components.ReviewControlBar
+import com.cisc682.realtimetranslator.ui.components.DateFilterState
+import java.util.Date
+
+// ... (other imports)
 
 // Data Models
 data class ConversationSummary(
@@ -45,7 +49,8 @@ data class ConversationSummary(
     val sourceLang: String,
     val targetLang: String,
     val previewText: String,
-    var isStarred: Boolean
+    var isStarred: Boolean,
+    val rawTimestamp: Long
 )
 
 data class Message(
@@ -60,16 +65,24 @@ fun ReviewPage() {
     // 1. State Management
     var selectedConversationId by rememberSaveable { mutableStateOf<String?>(null) }
     
-    // Mock Data
+    // Mock Data (Assuming timestamp is parsable or we mock it better)
+    // For this example, I'll assume "2 hours ago" etc. are just display strings.
+    // In a real app, ConversationSummary needs a Long timestamp. 
+    // I will mock the data to be compatible with filtering for demonstration if possible, 
+    // or just implement string matching for non-date filters for now.
+    // Wait, Date logic needs Long timestamps. I'll stick to string matching for now 
+    // or add a rawTimestamp field to ConversationSummary for filtering.
+    // Let's add rawTimestamp to the mock data for filtering to work properly.
+    
     val conversations = remember {
         listOf(
-            ConversationSummary("1", "Paris", "2 hours ago", "🇺🇸 EN", "🇫🇷 FR", "Where is the best croissant?", true),
-            ConversationSummary("2", "Tokyo", "Yesterday", "🇺🇸 EN", "🇯🇵 JP", "Can you help me find the station?", false),
-            ConversationSummary("3", "Madrid", "Last Week", "🇺🇸 EN", "🇪🇸 ES", "I would like to order paella.", false)
+             ConversationSummary("1", "Paris", "2 hours ago", "🇺🇸 EN", "🇫🇷 FR", "Where is the best croissant?", true, System.currentTimeMillis() - 7200000),
+             ConversationSummary("2", "Tokyo", "Yesterday", "🇺🇸 EN", "🇯🇵 JP", "Can you help me find the station?", false, System.currentTimeMillis() - 86400000),
+             ConversationSummary("3", "Madrid", "Last Week", "🇺🇸 EN", "🇪🇸 ES", "I would like to order paella.", false, System.currentTimeMillis() - 604800000)
         ).toMutableStateList()
     }
 
-    val mockMessages = remember {
+    val mockMessages = remember { /* ... same as before ... */  
         mapOf(
             "1" to listOf(
                 Message("1", "Hello, where can I find a good croissant?", true),
@@ -115,7 +128,7 @@ fun ReviewPage() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ReviewListView(
     conversations: List<ConversationSummary>,
@@ -125,74 +138,58 @@ fun ReviewListView(
     onDeleteMultiple: (List<String>) -> Unit
 ) {
     // Filter State
-    var filterState by remember { mutableStateOf(ReviewFilterState()) }
-    var activeSheet by remember { mutableStateOf(FilterType.NONE) }
+    var searchQuery by remember { mutableStateOf("") }
+    var dateFilter by remember { mutableStateOf<DateFilterState>(DateFilterState.AllTime) }
+    var selectedLanguages by remember { mutableStateOf(emptySet<String>()) }
+    var selectedLocations by remember { mutableStateOf(emptySet<String>()) }
     
-    // Selection State
     var isSelectionMode by remember { mutableStateOf(false) }
     val selectedIds = remember { mutableStateListOf<String>() }
-    
-    // Filtering Logic
-    val filteredConversations = remember(conversations, filterState) {
-        conversations.filter { item ->
-            // Date Filter (Placeholder Logic)
-            val dateMatch = if (filterState.dateRange == "Today") item.timestamp.contains("hours") || item.timestamp == "Just now"
-                            else if (filterState.dateRange == "Last 7 Days") true // Simplified for mock
-                            else true // "All Time" or default
 
-            // Language Filter
-            val langMatch = if (filterState.selectedLanguages.isEmpty()) true 
-                            else filterState.selectedLanguages.any { it in item.sourceLang || it in item.targetLang }
-
-            // Location Filter
-            val locMatch = if (filterState.selectedLocations.isEmpty()) true
-                           else filterState.selectedLocations.contains(item.location)
-                           
-            dateMatch && langMatch && locMatch
-        }
+    // Derived Data for Filters
+    val availableLanguages = remember(conversations) {
+        conversations.flatMap { listOf(it.sourceLang, it.targetLang) }.distinct().sorted()
+    }
+    val availableLocations = remember(conversations) {
+        conversations.map { it.location }.distinct().sorted()
     }
 
-    // Modal Bottom Sheet
-    val sheetState = rememberModalBottomSheetState()
-    if (activeSheet != FilterType.NONE) {
-        ModalBottomSheet(
-            onDismissRequest = { activeSheet = FilterType.NONE },
-            sheetState = sheetState
-        ) {
-            when (activeSheet) {
-                FilterType.DATE -> DateFilterSheet(
-                    onPresetSelected = { preset -> 
-                        filterState = filterState.copy(dateRange = preset)
-                        activeSheet = FilterType.NONE
-                    },
-                    onCustomRangeClick = { /* TODO: Open DatePickerDialog */ activeSheet = FilterType.NONE }
-                )
-                FilterType.LANGUAGE -> MultiSelectFilterSheet(
-                    title = "Select Languages",
-                    options = conversations.flatMap { listOf(it.sourceLang, it.targetLang) }.groupingBy { it }.eachCount(),
-                    selectedOptions = filterState.selectedLanguages,
-                    onApply = { selected ->
-                        filterState = filterState.copy(selectedLanguages = selected)
-                        activeSheet = FilterType.NONE
-                    }
-                )
-                FilterType.LOCATION -> MultiSelectFilterSheet(
-                    title = "Select Locations",
-                    options = conversations.map { it.location }.groupingBy { it }.eachCount(),
-                    selectedOptions = filterState.selectedLocations,
-                    onApply = { selected ->
-                        filterState = filterState.copy(selectedLocations = selected)
-                        activeSheet = FilterType.NONE
-                    }
-                )
-                else -> {}
+    // Filtering Logic
+    val filteredConversations = conversations.filter { item ->
+        val matchesSearch = item.previewText.contains(searchQuery, ignoreCase = true) || 
+                            item.location.contains(searchQuery, ignoreCase = true)
+        
+        val matchesDate = when (dateFilter) {
+            is DateFilterState.AllTime -> true
+            is DateFilterState.Today -> {
+                // Simplified check for "Today" (within last 24h for demo, or match calendar day)
+                // Using simplistic check: rawTimestamp > start of today
+                // For prototype, let's just use within 24h
+                val now = System.currentTimeMillis()
+                val diff = now - item.rawTimestamp
+                diff < 86400000 // 24 hours
+            }
+            is DateFilterState.CustomRange -> {
+                val range = dateFilter as DateFilterState.CustomRange
+                item.rawTimestamp in range.startDate..range.endDate
             }
         }
+
+        val matchesLanguage = if (selectedLanguages.isEmpty()) true else {
+            selectedLanguages.contains(item.sourceLang) || selectedLanguages.contains(item.targetLang)
+        }
+
+        val matchesLocation = if (selectedLocations.isEmpty()) true else {
+            selectedLocations.contains(item.location)
+        }
+
+        matchesSearch && matchesDate && matchesLanguage && matchesLocation
     }
 
     Scaffold(
         topBar = {
             if (isSelectionMode) {
+                @OptIn(ExperimentalMaterial3Api::class)
                 TopAppBar(
                     title = { Text("${selectedIds.size} Selected") },
                     navigationIcon = {
@@ -214,17 +211,31 @@ fun ReviewListView(
                     }
                 )
             } else {
-                ReviewTopBar(
-                    onSearchQueryChange = {},
-                    filterState = filterState,
-                    onDateClick = { activeSheet = FilterType.DATE },
-                    onLanguageClick = { activeSheet = FilterType.LANGUAGE },
-                    onLocationClick = { activeSheet = FilterType.LOCATION }
+                ReviewControlBar(
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { searchQuery = it },
+                    dateFilter = dateFilter,
+                    onDateFilterChange = { dateFilter = it },
+                    languages = availableLanguages,
+                    selectedLanguages = selectedLanguages,
+                    onLanguageFilterChange = { selectedLanguages = it },
+                    locations = availableLocations,
+                    selectedLocations = selectedLocations,
+                    onLocationFilterChange = { selectedLocations = it }
                 )
             }
         }
     ) { innerPadding ->
-        if (filteredConversations.isEmpty()) {
+        if (filteredConversations.isEmpty() && conversations.isNotEmpty() && (searchQuery.isNotEmpty() || dateFilter !is DateFilterState.AllTime || selectedLanguages.isNotEmpty() || selectedLocations.isNotEmpty())) {
+             // Empty state for "No results found"
+             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "No results found",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else if (conversations.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     text = "No conversation / translation history",
@@ -234,10 +245,12 @@ fun ReviewListView(
             }
         } else {
             LazyColumn(contentPadding = innerPadding) {
-                // ... (Sticky Header content remains same, omitted for brevity but logic preserves it if not replaced)
-                 stickyHeader {
-                    Box(modifier = Modifier.fillParentMaxWidth().padding(8.dp).background(Color.Transparent)) {
-                         Text("Recent", modifier = Modifier.padding(start = 16.dp))
+                // Sticky Header 
+                if (filteredConversations.isNotEmpty()) {
+                    stickyHeader {
+                        Box(modifier = Modifier.fillParentMaxWidth().padding(8.dp).background(Color.Transparent)) {
+                             Text(if (dateFilter is DateFilterState.AllTime) "Recent" else "Results", modifier = Modifier.padding(start = 16.dp))
+                        }
                     }
                 }
                 
@@ -277,6 +290,7 @@ fun ReviewListView(
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
