@@ -1,12 +1,6 @@
 package com.cisc682.realtimetranslator.pages
 
 import android.Manifest
-import android.app.Activity
-import android.content.Intent
-import android.speech.RecognizerIntent
-import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,10 +35,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import com.cisc682.realtimetranslator.lib.TranslationLib
 import com.cisc682.realtimetranslator.ui.components.SpeechBubble
+import com.cisc682.realtimetranslator.ui.components.SpeechRecognition
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -63,6 +59,7 @@ fun ConversationPage() {
     var secondaryLanguage by remember { mutableStateOf("es") }
     var isSwapped by remember { mutableStateOf(false) }
     var isPrimarySpeaker by remember { mutableStateOf(true) }
+    var showSpeechRecognition by remember { mutableStateOf(false) }
     var conversationHistory by remember {
         mutableStateOf(
             listOf(
@@ -86,51 +83,41 @@ fun ConversationPage() {
         secondaryLanguage = newLanguage
     }
 
-    val speechLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val data: Intent? = result.data
-            val results = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-            val spokenText = results?.get(0)
-            if (!spokenText.isNullOrBlank()) {
-                coroutineScope.launch {
-                    val sourceLang = if (isPrimarySpeaker) primaryLanguage else secondaryLanguage
-                    val targetLang = if (isPrimarySpeaker) secondaryLanguage else primaryLanguage
-                    val translatedText =
-                        TranslationLib.translate(sourceLang, targetLang, spokenText)
-                    conversationHistory = conversationHistory + if (isSwapped) Message(
-                        translatedText,
-                        spokenText,
-                        isPrimarySpeaker
-                    ) else Message(spokenText, translatedText, isPrimarySpeaker)
-                }
-            }
-        }
-    }
-
     val permissionState = rememberPermissionState(permission = Manifest.permission.RECORD_AUDIO)
 
     val onMicClick = { isPrimary: Boolean ->
-        Log.d("translate", "Mic clicked for ${if (isPrimary) "primary" else "secondary"}")
         isPrimarySpeaker = isPrimary
         if (permissionState.status.isGranted) {
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(
-                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-                )
-                putExtra(
-                    RecognizerIntent.EXTRA_LANGUAGE,
-                    if (isPrimary) primaryLanguage else secondaryLanguage
-                )
-                putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now")
-            }
-            speechLauncher.launch(intent)
+            showSpeechRecognition = true
         } else {
             permissionState.launchPermissionRequest()
         }
     }
+
+    if (showSpeechRecognition) {
+        SpeechRecognition(
+            context = LocalContext.current,
+            language = if (isPrimarySpeaker) primaryLanguage else secondaryLanguage,
+            isPrimarySpeaker = if (isSwapped) !isPrimarySpeaker else isPrimarySpeaker,
+            onSpeechResult = {
+                coroutineScope.launch {
+                    val sourceLang = if (isPrimarySpeaker) primaryLanguage else secondaryLanguage
+                    val targetLang = if (isPrimarySpeaker) secondaryLanguage else primaryLanguage
+                    val translatedText =
+                        TranslationLib.translate(sourceLang, targetLang, it)
+                    conversationHistory = conversationHistory + if (isPrimarySpeaker) Message(
+                        it,
+                        translatedText,
+                        true
+                    ) else Message(translatedText, it, false)
+                }
+            },
+            onClose = {
+                showSpeechRecognition = false
+            }
+        )
+    }
+
 
     Column(
         modifier = Modifier.fillMaxSize().let {
@@ -225,12 +212,18 @@ fun ConversationHalf(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = if (isMyMessage) Arrangement.End else Arrangement.Start
                         ) {
-                            SpeechBubble(
-                                text = speechBubbleText,
-                                alignment = if (isMyMessage) Alignment.End else Alignment.Start,
-                                color = bubbleColor,
-                                textColor = textColor,
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(0.75f),
+                                horizontalArrangement = if (isMyMessage) Arrangement.End else Arrangement.Start
+                            ) {
+
+                                SpeechBubble(
+                                    text = speechBubbleText,
+                                    alignment = if (isMyMessage) Alignment.End else Alignment.Start,
+                                    color = bubbleColor,
+                                    textColor = textColor,
+                                )
+                            }
                         }
                     }
                 }
