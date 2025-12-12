@@ -13,8 +13,12 @@ class TranslationLib {
                 .setTargetLanguage(TranslateLanguage.fromLanguageTag(targetLanguage)!!)
                 .build()
             val translator = Translation.getClient(options)
-
-            return translator.translate(text).await()
+            try {
+                translator.downloadModelIfNeeded().await()
+                return translator.translate(text).await()
+            } finally {
+                translator.close()
+            }
         }
     }
 }

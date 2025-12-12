@@ -53,7 +53,7 @@ data class ConversationSummary(
     val rawTimestamp: Long
 )
 
-data class Message(
+data class ReviewMessage(
     val id: String,
     val text: String,
     val isMe: Boolean
@@ -85,12 +85,12 @@ fun ReviewPage() {
     val mockMessages = remember { /* ... same as before ... */  
         mapOf(
             "1" to listOf(
-                Message("1", "Hello, where can I find a good croissant?", true),
-                Message("2", "Bonjour, il y a une excellente boulangerie au coin.", false),
-                Message("3", "Thank you!", true)
+                ReviewMessage("1", "Hello, where can I find a good croissant?", true),
+                ReviewMessage("2", "Bonjour, il y a une excellente boulangerie au coin.", false),
+                ReviewMessage("3", "Thank you!", true)
             ),
             "2" to listOf(
-                Message("1", "Excuse me, where is the station?", true)
+                ReviewMessage("1", "Excuse me, where is the station?", true)
             )
         )
     }
@@ -296,7 +296,7 @@ fun ReviewListView(
 @Composable
 fun ReviewDetailView(
     conversationId: String,
-    messages: List<Message>,
+    messages: List<ReviewMessage>,
     onBackClick: () -> Unit
 ) {
     Scaffold(

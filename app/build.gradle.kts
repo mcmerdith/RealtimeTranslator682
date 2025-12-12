@@ -61,4 +61,5 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("com.google.mlkit:translate:17.0.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+    implementation("com.google.accompanist:accompanist-permissions:0.37.3")
 }
