@@ -6,7 +6,9 @@ plugins {
 
 android {
     namespace = "com.cisc682.realtimetranslator"
-    compileSdk = 36
+    compileSdk {
+        version = release(36)
+    }
 
     defaultConfig {
         applicationId = "com.cisc682.realtimetranslator"
