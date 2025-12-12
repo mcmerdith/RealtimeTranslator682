@@ -1,6 +1,6 @@
 # App Design
 
-The app is written in Jetpack Compose targeting Android 8.
+The app is written in Jetpack Compose targeting Android 8 (SDK 36).
 
 The main layout is in `MainActivity.kt`. Do not modify this file.
 
@@ -8,6 +8,10 @@ The layout of the app is a 3 tab design, where each page of the layout is a sepa
 within the `pages` package.
 
 All UI components should be in an individual file within the `ui.components` package.
+
+Do not alter the build configuration. You may add packages as required.
+
+Do not alter the project structure. All code should be in the `com.cisc682.realtimetranslator` package.
 
 # UI Interactions
 
