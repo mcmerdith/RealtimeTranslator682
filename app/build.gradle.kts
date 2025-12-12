@@ -59,4 +59,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("com.google.mlkit:translate:17.0.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 }
