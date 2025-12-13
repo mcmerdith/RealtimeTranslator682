@@ -1,12 +1,13 @@
 package com.cisc682.realtimetranslator.ui.components
 
-import android.content.Context
+import android.Manifest
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,25 +29,76 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun SpeechRecognition(
-    context: Context,
+fun createSpeechRecognizer(
     language: String,
-    isPrimarySpeaker: Boolean,
+    flipped: Boolean,
+    onSpeechResult: (String) -> Unit,
+): () -> Unit {
+    val context = LocalContext.current
+    var active by rememberSaveable {mutableStateOf(false)}
+    var showSpeechRecognition by rememberSaveable { mutableStateOf(false) }
+    val permissionState = rememberPermissionState(permission = Manifest.permission.RECORD_AUDIO, { granted ->
+        if (granted) {
+            showSpeechRecognition = true
+        } else {
+            Toast.makeText(context, "Microphone permission denied", Toast.LENGTH_LONG).show()
+        }
+    })
+
+    LaunchedEffect(active) {
+        if (active) {
+            if (permissionState.status.isGranted) {
+                showSpeechRecognition = true
+            } else {
+                permissionState.launchPermissionRequest()
+            }
+        } else {
+            showSpeechRecognition = false
+        }
+    }
+
+    if (showSpeechRecognition) {
+        SpeechRecognition(
+            language = language,
+            flipped = flipped,
+            onSpeechResult = onSpeechResult,
+            onClose = {
+                active = false
+            }
+        )
+    }
+
+    return { ->
+        active = true
+    }
+}
+
+@Composable
+private fun SpeechRecognition(
+    language: String,
+    flipped: Boolean,
     onSpeechResult: (String) -> Unit,
     onClose: () -> Unit
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val speechRecognizer = remember { SpeechRecognizer.createSpeechRecognizer(context) }
     val speechRecognizerIntent = remember { Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH) }
@@ -84,7 +136,7 @@ fun SpeechRecognition(
         override fun onError(error: Int) {
             Log.e("SpeechRecognition", "Error: $error")
             isListening = false
-            partialText = "Try again"
+            partialText = "Press the microphone to try again"
         }
 
         override fun onResults(results: Bundle?) {
@@ -98,7 +150,7 @@ fun SpeechRecognition(
                     onClose()
                 }
             } else {
-                partialText = "Try again"
+                partialText = "Press the microphone to try again"
             }
         }
 
@@ -137,7 +189,7 @@ fun SpeechRecognition(
                 .padding(horizontal = 16.dp)
                 .wrapContentHeight()
                 .let {
-                    if (!isPrimarySpeaker) {
+                    if (flipped) {
                         it.graphicsLayer { rotationZ = 180f }
                     } else {
                         it

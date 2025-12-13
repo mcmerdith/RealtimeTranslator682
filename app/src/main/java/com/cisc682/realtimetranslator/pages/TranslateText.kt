@@ -49,14 +49,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cisc682.realtimetranslator.lib.TranslationLib
 import com.cisc682.realtimetranslator.ui.components.LanguageDropdown
-import com.cisc682.realtimetranslator.ui.components.SpeechRecognition
-import com.cisc682.realtimetranslator.ui.components.textToSpeechEngine
+import com.cisc682.realtimetranslator.ui.components.createSpeechRecognizer
+import com.cisc682.realtimetranslator.ui.components.createTextToSpeech
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
 fun TranslateTextPage() {
-    val context = LocalContext.current;
+    val context = LocalContext.current
 
     var sourceText by rememberSaveable { mutableStateOf("") }
     var translatedText by rememberSaveable { mutableStateOf("") }
@@ -66,18 +66,10 @@ fun TranslateTextPage() {
     var targetLangTag by rememberSaveable { mutableStateOf("es") }
 
     // Speech-to-Text (Voice Recognition)
-    var showSpeechRecognition by rememberSaveable { mutableStateOf(false) }
-
-    // Bring the speech recognition component into scope
-    SpeechRecognition(
-        active = showSpeechRecognition,
-        context = LocalContext.current,
+    val showSpeechRecognition = createSpeechRecognizer(
         language = sourceLangTag,
         flipped = false,
-        onSpeechResult = { sourceText = it },
-        onDeactivate = {
-            showSpeechRecognition = false
-        })
+        onSpeechResult = { sourceText = it })
 
     LaunchedEffect(sourceText, sourceLangTag, targetLangTag) {
         if (sourceText.isNotBlank()) {
@@ -145,7 +137,7 @@ fun TranslateTextPage() {
             }
             FilledIconButton(
                 onClick = {
-                    showSpeechRecognition = true
+                    showSpeechRecognition()
                 },
                 shape = CircleShape,
                 modifier = Modifier.size(48.dp).align(Alignment.BottomCenter)
@@ -216,7 +208,7 @@ fun TranslationTextBox(
     }
 
     // Text-to-Speech
-    val speak = textToSpeechEngine(languageTag)
+    val speak = createTextToSpeech(languageTag)
 
     Box(
         modifier = modifier
