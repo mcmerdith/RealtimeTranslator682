@@ -52,15 +52,7 @@ fun ConversationPage() {
 
     // Information about conversation state
     var isSwapped by remember { mutableStateOf(false) }
-    var conversationHistory by remember {
-        mutableStateOf(
-            listOf(
-                Message("Hello", "Hola", true),
-                Message("How are you?", "Como estas?", false),
-                Message("I'm fine, thanks!", "Estoy bien, gracias!", true)
-            )
-        )
-    }
+    var conversationHistory by remember { mutableStateOf(listOf<Message>()) }
 
 
     val onSwapLanguages = {
@@ -160,39 +152,43 @@ fun ConversationHalf(
                 .fillMaxWidth()
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(
-                        start = 8.dp, end = 8.dp, top = 8.dp, bottom = 72.dp
-                    ), verticalArrangement = Arrangement.spacedBy(8.dp), reverseLayout = true
-                ) {
-                    items(messages.reversed()) { message ->
-                        val isMyMessage = message.isPrimary == isPrimary
-                        val bubbleColor =
-                            if (isMyMessage) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
-                        val textColor =
-                            if (isMyMessage) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
+                if (messages.isEmpty()) {
+                    Text(modifier = Modifier.align(Alignment.Center), text = "Tap the mic to start!")
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(
+                            start = 8.dp, end = 8.dp, top = 8.dp, bottom = 72.dp
+                        ), verticalArrangement = Arrangement.spacedBy(8.dp), reverseLayout = true
+                    ) {
+                        items(messages.reversed()) { message ->
+                            val isMyMessage = message.isPrimary == isPrimary
+                            val bubbleColor =
+                                if (isMyMessage) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+                            val textColor =
+                                if (isMyMessage) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
 
-                        val nativeLangText =
-                            if (isPrimary) message.primaryText else message.secondaryText
-                        val otherLangText =
-                            if (isPrimary) message.secondaryText else message.primaryText
-                        val speechBubbleText = arrayOf(nativeLangText, otherLangText)
+                            val nativeLangText =
+                                if (isPrimary) message.primaryText else message.secondaryText
+                            val otherLangText =
+                                if (isPrimary) message.secondaryText else message.primaryText
+                            val speechBubbleText = arrayOf(nativeLangText, otherLangText)
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = if (isMyMessage) Arrangement.End else Arrangement.Start
-                        ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth(0.75f),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = if (isMyMessage) Arrangement.End else Arrangement.Start
                             ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(0.75f),
+                                    horizontalArrangement = if (isMyMessage) Arrangement.End else Arrangement.Start
+                                ) {
 
-                                SpeechBubble(
-                                    text = speechBubbleText,
-                                    alignment = if (isMyMessage) Alignment.End else Alignment.Start,
-                                    color = bubbleColor,
-                                    textColor = textColor,
-                                )
+                                    SpeechBubble(
+                                        text = speechBubbleText,
+                                        alignment = if (isMyMessage) Alignment.End else Alignment.Start,
+                                        color = bubbleColor,
+                                        textColor = textColor,
+                                    )
+                                }
                             }
                         }
                     }
