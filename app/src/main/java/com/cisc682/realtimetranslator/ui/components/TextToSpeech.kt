@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import com.cisc682.realtimetranslator.lib.TranslationLib
 
 enum class TtsState {
@@ -21,7 +22,8 @@ enum class TtsState {
 
 @Composable
 fun createTextToSpeech(languageTag: String): (text: String) -> Unit {
-    // Text-to-Speech
+    // Text-to-speech is not available in preview mode
+    if (LocalInspectionMode.current) return { }
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
     var ttsState by rememberSaveable { mutableStateOf(TtsState.INIT) }
     val context = LocalContext.current

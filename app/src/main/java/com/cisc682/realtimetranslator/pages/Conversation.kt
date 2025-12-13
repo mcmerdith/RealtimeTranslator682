@@ -36,6 +36,7 @@ import com.cisc682.realtimetranslator.lib.TranslationLib
 import com.cisc682.realtimetranslator.ui.components.LanguageDropdown
 import com.cisc682.realtimetranslator.ui.components.SpeechBubble
 import com.cisc682.realtimetranslator.ui.components.createSpeechRecognizer
+import com.cisc682.realtimetranslator.ui.components.createTextToSpeech
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import kotlinx.coroutines.launch
 
@@ -105,7 +106,7 @@ fun ConversationPage() {
                 .fillMaxWidth()
                 .graphicsLayer { rotationZ = 180f }) {
             ConversationHalf(
-                language = secondaryLangTag,
+                languageTag = secondaryLangTag,
                 messages = conversationHistory,
                 onSwap = onSwapLanguages,
                 isPrimary = false,
@@ -119,7 +120,7 @@ fun ConversationPage() {
                 .fillMaxWidth()
         ) {
             ConversationHalf(
-                language = primaryLangTag,
+                languageTag = primaryLangTag,
                 messages = conversationHistory,
                 onSwap = onSwapLanguages,
                 isPrimary = true,
@@ -132,13 +133,14 @@ fun ConversationPage() {
 
 @Composable
 fun ConversationHalf(
-    language: String,
+    languageTag: String,
     messages: List<Message>,
     onSwap: () -> Unit,
     isPrimary: Boolean,
     onMicClick: () -> Unit,
     onLanguageChange: (String) -> Unit
 ) {
+    val speak = createTextToSpeech(languageTag)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -153,7 +155,10 @@ fun ConversationHalf(
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 if (messages.isEmpty()) {
-                    Text(modifier = Modifier.align(Alignment.Center), text = "Tap the mic to start!")
+                    Text(
+                        modifier = Modifier.align(Alignment.Center),
+                        text = "Tap the mic to start!"
+                    )
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(
@@ -186,6 +191,7 @@ fun ConversationHalf(
                                         alignment = if (isMyMessage) Alignment.End else Alignment.Start,
                                         color = bubbleColor,
                                         textColor = textColor,
+                                        speak = speak,
                                     )
                                 }
                             }
@@ -210,7 +216,7 @@ fun ConversationHalf(
                 .padding(top = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            LanguageDropdown(language, onLanguageChange)
+            LanguageDropdown(languageTag, onLanguageChange)
             Spacer(modifier = Modifier.weight(1f))
             Button(onClick = onSwap) {
                 Icon(Icons.Default.SwapHoriz, contentDescription = "Swap Languages")
