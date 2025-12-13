@@ -4,40 +4,38 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
-import com.cisc682.realtimetranslator.ui.components.SpeechBubble
+import com.cisc682.realtimetranslator.ui.components.DateFilterState
 import com.cisc682.realtimetranslator.ui.components.ReviewCard
 import com.cisc682.realtimetranslator.ui.components.ReviewControlBar
-import com.cisc682.realtimetranslator.ui.components.DateFilterState
-import java.util.Date
+import com.cisc682.realtimetranslator.ui.components.SpeechBubble
 
 // ... (other imports)
 
@@ -64,7 +62,7 @@ data class ReviewMessage(
 fun ReviewPage() {
     // 1. State Management
     var selectedConversationId by rememberSaveable { mutableStateOf<String?>(null) }
-    
+
     // Mock Data (Assuming timestamp is parsable or we mock it better)
     // For this example, I'll assume "2 hours ago" etc. are just display strings.
     // In a real app, ConversationSummary needs a Long timestamp. 
@@ -73,16 +71,43 @@ fun ReviewPage() {
     // Wait, Date logic needs Long timestamps. I'll stick to string matching for now 
     // or add a rawTimestamp field to ConversationSummary for filtering.
     // Let's add rawTimestamp to the mock data for filtering to work properly.
-    
+
     val conversations = remember {
         listOf(
-             ConversationSummary("1", "Paris", "2 hours ago", "🇺🇸 EN", "🇫🇷 FR", "Where is the best croissant?", true, System.currentTimeMillis() - 7200000),
-             ConversationSummary("2", "Tokyo", "Yesterday", "🇺🇸 EN", "🇯🇵 JP", "Can you help me find the station?", false, System.currentTimeMillis() - 86400000),
-             ConversationSummary("3", "Madrid", "Last Week", "🇺🇸 EN", "🇪🇸 ES", "I would like to order paella.", false, System.currentTimeMillis() - 604800000)
+            ConversationSummary(
+                "1",
+                "Paris",
+                "2 hours ago",
+                "🇺🇸 EN",
+                "🇫🇷 FR",
+                "Where is the best croissant?",
+                true,
+                System.currentTimeMillis() - 7200000
+            ),
+            ConversationSummary(
+                "2",
+                "Tokyo",
+                "Yesterday",
+                "🇺🇸 EN",
+                "🇯🇵 JP",
+                "Can you help me find the station?",
+                false,
+                System.currentTimeMillis() - 86400000
+            ),
+            ConversationSummary(
+                "3",
+                "Madrid",
+                "Last Week",
+                "🇺🇸 EN",
+                "🇪🇸 ES",
+                "I would like to order paella.",
+                false,
+                System.currentTimeMillis() - 604800000
+            )
         ).toMutableStateList()
     }
 
-    val mockMessages = remember { /* ... same as before ... */  
+    val mockMessages = remember { /* ... same as before ... */
         mapOf(
             "1" to listOf(
                 ReviewMessage("1", "Hello, where can I find a good croissant?", true),
@@ -142,7 +167,7 @@ fun ReviewListView(
     var dateFilter by remember { mutableStateOf<DateFilterState>(DateFilterState.AllTime) }
     var selectedLanguages by remember { mutableStateOf(emptySet<String>()) }
     var selectedLocations by remember { mutableStateOf(emptySet<String>()) }
-    
+
     var isSelectionMode by remember { mutableStateOf(false) }
     val selectedIds = remember { mutableStateListOf<String>() }
 
@@ -156,9 +181,9 @@ fun ReviewListView(
 
     // Filtering Logic
     val filteredConversations = conversations.filter { item ->
-        val matchesSearch = item.previewText.contains(searchQuery, ignoreCase = true) || 
-                            item.location.contains(searchQuery, ignoreCase = true)
-        
+        val matchesSearch = item.previewText.contains(searchQuery, ignoreCase = true) ||
+                item.location.contains(searchQuery, ignoreCase = true)
+
         val matchesDate = when (dateFilter) {
             is DateFilterState.AllTime -> true
             is DateFilterState.Today -> {
@@ -169,6 +194,7 @@ fun ReviewListView(
                 val diff = now - item.rawTimestamp
                 diff < 86400000 // 24 hours
             }
+
             is DateFilterState.CustomRange -> {
                 val range = dateFilter as DateFilterState.CustomRange
                 item.rawTimestamp in range.startDate..range.endDate
@@ -186,49 +212,46 @@ fun ReviewListView(
         matchesSearch && matchesDate && matchesLanguage && matchesLocation
     }
 
-    Scaffold(
-        topBar = {
-            if (isSelectionMode) {
-                @OptIn(ExperimentalMaterial3Api::class)
-                TopAppBar(
-                    title = { Text("${selectedIds.size} Selected") },
-                    navigationIcon = {
-                        IconButton(onClick = {
-                            isSelectionMode = false
-                            selectedIds.clear()
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Close")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = {
-                            onDeleteMultiple(selectedIds.toList())
-                            isSelectionMode = false
-                            selectedIds.clear()
-                        }) {
-                            Icon(Icons.Default.Delete, "Delete")
-                        }
+    Column(modifier = Modifier.fillMaxSize()) { ->
+        if (isSelectionMode) {
+            @OptIn(ExperimentalMaterial3Api::class)
+            TopAppBar(
+                title = { Text("${selectedIds.size} Selected") },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        isSelectionMode = false
+                        selectedIds.clear()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Close")
                     }
-                )
-            } else {
-                ReviewControlBar(
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { searchQuery = it },
-                    dateFilter = dateFilter,
-                    onDateFilterChange = { dateFilter = it },
-                    languages = availableLanguages,
-                    selectedLanguages = selectedLanguages,
-                    onLanguageFilterChange = { selectedLanguages = it },
-                    locations = availableLocations,
-                    selectedLocations = selectedLocations,
-                    onLocationFilterChange = { selectedLocations = it }
-                )
-            }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        onDeleteMultiple(selectedIds.toList())
+                        isSelectionMode = false
+                        selectedIds.clear()
+                    }) {
+                        Icon(Icons.Default.Delete, "Delete")
+                    }
+                }
+            )
+        } else {
+            ReviewControlBar(
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+                dateFilter = dateFilter,
+                onDateFilterChange = { dateFilter = it },
+                languages = availableLanguages,
+                selectedLanguages = selectedLanguages,
+                onLanguageFilterChange = { selectedLanguages = it },
+                locations = availableLocations,
+                selectedLocations = selectedLocations,
+                onLocationFilterChange = { selectedLocations = it }
+            )
         }
-    ) { innerPadding ->
         if (filteredConversations.isEmpty() && conversations.isNotEmpty() && (searchQuery.isNotEmpty() || dateFilter !is DateFilterState.AllTime || selectedLanguages.isNotEmpty() || selectedLocations.isNotEmpty())) {
-             // Empty state for "No results found"
-             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            // Empty state for "No results found"
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     text = "No results found",
                     style = MaterialTheme.typography.bodyLarge,
@@ -244,16 +267,24 @@ fun ReviewListView(
                 )
             }
         } else {
-            LazyColumn(contentPadding = innerPadding) {
-                // Sticky Header 
+            LazyColumn {
+                // Sticky Header
                 if (filteredConversations.isNotEmpty()) {
                     stickyHeader {
-                        Box(modifier = Modifier.fillParentMaxWidth().padding(8.dp).background(Color.Transparent)) {
-                             Text(if (dateFilter is DateFilterState.AllTime) "Recent" else "Results", modifier = Modifier.padding(start = 16.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillParentMaxWidth()
+                                .padding(8.dp)
+                                .background(Color.Transparent)
+                        ) {
+                            Text(
+                                if (dateFilter is DateFilterState.AllTime) "Recent" else "Results",
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
                         }
                     }
                 }
-                
+
                 items(filteredConversations, key = { it.id }) { item ->
                     ReviewCard(
                         location = item.location,
@@ -263,10 +294,12 @@ fun ReviewListView(
                         isStarred = item.isStarred,
                         isSelectionMode = isSelectionMode,
                         isSelected = selectedIds.contains(item.id),
-                        onToggleStar = { onToggleStar(item.id, it) }, 
+                        onToggleStar = { onToggleStar(item.id, it) },
                         onClick = {
                             if (isSelectionMode) {
-                                if (selectedIds.contains(item.id)) selectedIds.remove(item.id) else selectedIds.add(item.id)
+                                if (selectedIds.contains(item.id)) selectedIds.remove(item.id) else selectedIds.add(
+                                    item.id
+                                )
                                 if (selectedIds.isEmpty()) isSelectionMode = false
                             } else {
                                 onConversationClick(item.id)
@@ -280,7 +313,7 @@ fun ReviewListView(
                         },
                         onSelectionChange = { selected ->
                             if (selected) selectedIds.add(item.id) else selectedIds.remove(item.id)
-                            if (selectedIds.isEmpty()) isSelectionMode = false 
+                            if (selectedIds.isEmpty()) isSelectionMode = false
                         },
                         onDelete = { onDelete(item.id) },
                         onExport = { /* Export logic */ }
@@ -299,24 +332,20 @@ fun ReviewDetailView(
     messages: List<ReviewMessage>,
     onBackClick: () -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Conversation Details") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {}) { Icon(Icons.Default.Share, "Share") }
-                    IconButton(onClick = {}) { Icon(Icons.Default.Delete, "Delete") }
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopAppBar(
+            title = { Text("Conversation Details") },
+            navigationIcon = {
+                IconButton(onClick = onBackClick) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                 }
-            )
-        }
-    ) { innerPadding ->
+            },
+            actions = {
+                IconButton(onClick = {}) { Icon(Icons.Default.Share, "Share") }
+                IconButton(onClick = {}) { Icon(Icons.Default.Delete, "Delete") }
+            }
+        )
         LazyColumn(
-            contentPadding = innerPadding,
             modifier = Modifier.padding(16.dp),
             verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
         ) {
