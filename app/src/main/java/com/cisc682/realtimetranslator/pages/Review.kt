@@ -3,9 +3,12 @@ package com.cisc682.realtimetranslator.pages
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -351,12 +354,22 @@ fun ReviewDetailView(
         ) {
             items(messages) { message ->
                 // Adapting to existing SpeechBubble API
-                SpeechBubble(
-                    text = arrayOf(message.text),
-                    alignment = if (message.isMe) Alignment.End else Alignment.Start,
-                    color = if (message.isMe) Color(0xFFE3F2FD) else Color(0xFFF5F5F5), // Light Blue for me, Gray for other
-                    textColor = Color.Black
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = if (message.isMe) Arrangement.End else Arrangement.Start
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(0.75f),
+                        horizontalArrangement = if (message.isMe) Arrangement.End else Arrangement.Start
+                    ) {
+                        SpeechBubble(
+                            text = arrayOf(message.text),
+                            alignment = if (message.isMe) Alignment.End else Alignment.Start,
+                            color = if (message.isMe) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer, // Light Blue for me, Gray for other
+                            textColor = if (message.isMe) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
             }
         }
     }

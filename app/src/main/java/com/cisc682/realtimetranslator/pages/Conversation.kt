@@ -181,7 +181,6 @@ fun ConversationHalf(
                                     modifier = Modifier.fillMaxWidth(0.75f),
                                     horizontalArrangement = if (isMyMessage) Arrangement.End else Arrangement.Start
                                 ) {
-
                                     SpeechBubble(
                                         text = speechBubbleText,
                                         alignment = if (isMyMessage) Alignment.End else Alignment.Start,
