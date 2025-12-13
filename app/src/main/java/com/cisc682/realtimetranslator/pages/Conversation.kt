@@ -1,6 +1,5 @@
 package com.cisc682.realtimetranslator.pages
 
-import android.Manifest
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,17 +13,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,18 +30,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import com.cisc682.realtimetranslator.lib.TranslationLib
+import com.cisc682.realtimetranslator.ui.components.LanguageDropdown
 import com.cisc682.realtimetranslator.ui.components.SpeechBubble
-import com.cisc682.realtimetranslator.ui.components.SpeechRecognition
+import com.cisc682.realtimetranslator.ui.components.createSpeechRecognizer
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
-import com.google.mlkit.nl.translate.TranslateLanguage
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 // Represents a single message in the conversation
 data class Message(val primaryText: String, val secondaryText: String, val isPrimary: Boolean)
@@ -55,11 +46,12 @@ data class Message(val primaryText: String, val secondaryText: String, val isPri
 @PreviewScreenSizes
 @Composable
 fun ConversationPage() {
-    var primaryLanguage by remember { mutableStateOf("en") }
-    var secondaryLanguage by remember { mutableStateOf("es") }
+    // Languages
+    var primaryLangTag by remember { mutableStateOf("en") }
+    var secondaryLangTag by remember { mutableStateOf("es") }
+
+    // Information about conversation state
     var isSwapped by remember { mutableStateOf(false) }
-    var isPrimarySpeaker by remember { mutableStateOf(true) }
-    var showSpeechRecognition by remember { mutableStateOf(false) }
     var conversationHistory by remember {
         mutableStateOf(
             listOf(
@@ -69,55 +61,43 @@ fun ConversationPage() {
             )
         )
     }
-    val coroutineScope = rememberCoroutineScope()
+
 
     val onSwapLanguages = {
         isSwapped = !isSwapped
     }
 
     val onPrimaryLanguageChange = { newLanguage: String ->
-        primaryLanguage = newLanguage
+        primaryLangTag = newLanguage
     }
 
     val onSecondaryLanguageChange = { newLanguage: String ->
-        secondaryLanguage = newLanguage
+        secondaryLangTag = newLanguage
     }
 
-    val permissionState = rememberPermissionState(permission = Manifest.permission.RECORD_AUDIO)
+    // Speech recognition state
+    var isPrimarySpeaker by remember { mutableStateOf(true) }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Speech to Text
+    val showSpeechRecognition = createSpeechRecognizer(
+        language = if (isPrimarySpeaker) primaryLangTag else secondaryLangTag,
+        flipped = if (isSwapped) isPrimarySpeaker else !isPrimarySpeaker,
+        onSpeechResult = {
+            coroutineScope.launch {
+                val sourceLang = if (isPrimarySpeaker) primaryLangTag else secondaryLangTag
+                val targetLang = if (isPrimarySpeaker) secondaryLangTag else primaryLangTag
+                val translatedText = TranslationLib.translate(sourceLang, targetLang, it)
+                conversationHistory = conversationHistory + if (isPrimarySpeaker) Message(
+                    it, translatedText, true
+                ) else Message(translatedText, it, false)
+            }
+        })
 
     val onMicClick = { isPrimary: Boolean ->
         isPrimarySpeaker = isPrimary
-        if (permissionState.status.isGranted) {
-            showSpeechRecognition = true
-        } else {
-            permissionState.launchPermissionRequest()
-        }
+        showSpeechRecognition()
     }
-
-    if (showSpeechRecognition) {
-        SpeechRecognition(
-            context = LocalContext.current,
-            language = if (isPrimarySpeaker) primaryLanguage else secondaryLanguage,
-            isPrimarySpeaker = if (isSwapped) !isPrimarySpeaker else isPrimarySpeaker,
-            onSpeechResult = {
-                coroutineScope.launch {
-                    val sourceLang = if (isPrimarySpeaker) primaryLanguage else secondaryLanguage
-                    val targetLang = if (isPrimarySpeaker) secondaryLanguage else primaryLanguage
-                    val translatedText =
-                        TranslationLib.translate(sourceLang, targetLang, it)
-                    conversationHistory = conversationHistory + if (isPrimarySpeaker) Message(
-                        it,
-                        translatedText,
-                        true
-                    ) else Message(translatedText, it, false)
-                }
-            },
-            onClose = {
-                showSpeechRecognition = false
-            }
-        )
-    }
-
 
     Column(
         modifier = Modifier.fillMaxSize().let {
@@ -126,16 +106,14 @@ fun ConversationPage() {
             } else {
                 it
             }
-        }
-    ) {
+        }) {
         Column(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .graphicsLayer { rotationZ = 180f }
-        ) {
+                .graphicsLayer { rotationZ = 180f }) {
             ConversationHalf(
-                language = secondaryLanguage,
+                language = secondaryLangTag,
                 messages = conversationHistory,
                 onSwap = onSwapLanguages,
                 isPrimary = false,
@@ -149,7 +127,7 @@ fun ConversationPage() {
                 .fillMaxWidth()
         ) {
             ConversationHalf(
-                language = primaryLanguage,
+                language = primaryLangTag,
                 messages = conversationHistory,
                 onSwap = onSwapLanguages,
                 isPrimary = true,
@@ -169,8 +147,6 @@ fun ConversationHalf(
     onMicClick: () -> Unit,
     onLanguageChange: (String) -> Unit
 ) {
-    var dropdownExpanded by remember { mutableStateOf(false) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -185,15 +161,9 @@ fun ConversationHalf(
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = 8.dp,
-                        end = 8.dp,
-                        top = 8.dp,
-                        bottom = 72.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    reverseLayout = true
+                    modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(
+                        start = 8.dp, end = 8.dp, top = 8.dp, bottom = 72.dp
+                    ), verticalArrangement = Arrangement.spacedBy(8.dp), reverseLayout = true
                 ) {
                     items(messages.reversed()) { message ->
                         val isMyMessage = message.isPrimary == isPrimary
@@ -245,30 +215,10 @@ fun ConversationHalf(
                 .padding(top = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box {
-                OutlinedButton(onClick = { dropdownExpanded = true }) {
-                    Text(text = Locale.forLanguageTag(language).displayLanguage)
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Select language")
-                }
-                DropdownMenu(
-                    expanded = dropdownExpanded,
-                    onDismissRequest = { dropdownExpanded = false }
-                ) {
-                    val languages = TranslateLanguage.getAllLanguages()
-                    for (langCode in languages) {
-                        DropdownMenuItem(
-                            text = { Text(Locale.forLanguageTag(langCode).displayLanguage) },
-                            onClick = {
-                                onLanguageChange(langCode)
-                                dropdownExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
+            LanguageDropdown(language, onLanguageChange)
             Spacer(modifier = Modifier.weight(1f))
             Button(onClick = onSwap) {
-                Icon(Icons.Default.SwapHoriz, contentDescription = null)
+                Icon(Icons.Default.SwapHoriz, contentDescription = "Swap Languages")
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(text = "Swap")
             }

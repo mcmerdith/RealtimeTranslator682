@@ -39,6 +39,9 @@ android {
     buildFeatures {
         compose = true
     }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.1"
+    }
 }
 
 dependencies {
@@ -58,8 +61,8 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("com.google.mlkit:translate:17.0.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
-    implementation("com.google.accompanist:accompanist-permissions:0.37.3")
+    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.google.mlkit.translate)
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.google.accompanist.permissions)
 }
