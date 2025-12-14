@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
 @PreviewScreenSizes
 @Composable
 fun RealtimeTranslatorApp() {
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.TRANSLATE) }
+    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.CONVERSATION) }
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
@@ -93,20 +93,4 @@ enum class AppDestinations(
     TRANSLATE("Translate", Icons.Default.Home),
     CONVERSATION("Conversation", Icons.Default.Person),
     REVIEW("Review", Icons.Default.Menu),
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    RealtimeTranslatorTheme {
-        Greeting("Android")
-    }
 }
