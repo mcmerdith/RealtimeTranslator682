@@ -64,18 +64,19 @@ fun createSpeechRecognizer(
 ): () -> Unit {
     val context = LocalContext.current
 
-    var active by rememberSaveable {mutableStateOf(false)}
+    var active by rememberSaveable { mutableStateOf(false) }
     var showSpeechRecognition by rememberSaveable { mutableStateOf(false) }
 
-    val permissionState = rememberPermissionState(permission = Manifest.permission.RECORD_AUDIO) { granted ->
-        if (granted) {
-            // Automatically show the dialog if permission is granted
-            showSpeechRecognition = true
-        } else {
-            // Warn the user that speech recognition was denied
-            Toast.makeText(context, "Microphone permission denied", Toast.LENGTH_LONG).show()
+    val permissionState =
+        rememberPermissionState(permission = Manifest.permission.RECORD_AUDIO) { granted ->
+            if (granted) {
+                // Automatically show the dialog if permission is granted
+                showSpeechRecognition = true
+            } else {
+                // Warn the user that speech recognition was denied
+                Toast.makeText(context, "Microphone permission denied", Toast.LENGTH_LONG).show()
+            }
         }
-    }
 
     LaunchedEffect(active) {
         // Whenever the active state changes, check for permission and show the dialog, or close it

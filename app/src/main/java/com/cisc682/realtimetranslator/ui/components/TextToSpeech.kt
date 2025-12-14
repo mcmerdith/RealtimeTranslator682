@@ -67,6 +67,7 @@ fun createTextToSpeech(languageTag: String): (text: String) -> Unit {
                     ).show()
                 }
             }
+
             TtsState.FAILED -> {
                 Toast.makeText(context, "Text to speech setup failed!", Toast.LENGTH_LONG).show()
             }
@@ -83,12 +84,15 @@ fun createTextToSpeech(languageTag: String): (text: String) -> Unit {
                     Toast.LENGTH_LONG
                 ).show()
             }
+
             TtsState.READY -> {
                 tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null) ?: run {
                     // Should never happen
-                    Toast.makeText(context, "Text to speech not initialized!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Text to speech not initialized!", Toast.LENGTH_LONG)
+                        .show()
                 }
             }
+
             TtsState.FAILED -> {
                 Toast.makeText(context, "Text to speech failed!", Toast.LENGTH_LONG).show()
             }

@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
@@ -26,8 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import com.cisc682.realtimetranslator.pages.ConversationPage
 import com.cisc682.realtimetranslator.pages.ReviewPage
@@ -72,7 +68,9 @@ fun RealtimeTranslatorApp() {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top,
-                modifier = Modifier.fillMaxSize().padding(innerPadding)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
             ) {
                 when (currentDestination) {
                     AppDestinations.TRANSLATE -> TranslateTextPage()

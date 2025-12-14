@@ -146,7 +146,9 @@ fun TranslateTextPage() {
                     showSpeechRecognition()
                 },
                 shape = CircleShape,
-                modifier = Modifier.size(48.dp).align(Alignment.BottomCenter)
+                modifier = Modifier
+                    .size(48.dp)
+                    .align(Alignment.BottomCenter)
             ) {
                 Icon(
                     Icons.Filled.Mic,
