@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,7 +34,7 @@ fun SpeakButton(text: String, flipped: Boolean, speak: (String) -> Unit, color: 
             speak(text)
         },
         enabled = text.isNotEmpty(),
-        modifier = Modifier.size(24.dp),
+        modifier = Modifier.requiredSize(24.dp),
     ) {
         Icon(
             Icons.Outlined.Campaign,
@@ -80,13 +81,13 @@ fun SpeechBubble(
             horizontalAlignment = alignment,
             modifier = Modifier
                 .width(IntrinsicSize.Min)
+                .weight(1f)
         ) {
             text.forEachIndexed { index, t ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp, alignment),
                     modifier = Modifier
-                        .width(IntrinsicSize.Max)
                         .padding(
                             top = if (index == 0) 10.dp else 2.5.dp,
                             bottom = if (index == text.size - 1) 10.dp else 2.5.dp
@@ -97,6 +98,8 @@ fun SpeechBubble(
                         text = t,
                         color = textColor,
                         fontSize = if (index == 0) 16.sp else 12.sp,
+                        modifier = Modifier
+                            .width(IntrinsicSize.Max)
                     )
                 }
             }
