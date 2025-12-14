@@ -1,5 +1,6 @@
 package com.cisc682.realtimetranslator.pages
 
+import android.Manifest.permission_group.PHONE
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +46,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cisc682.realtimetranslator.lib.TranslationLib
@@ -54,6 +56,7 @@ import com.cisc682.realtimetranslator.ui.components.createTextToSpeech
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@Preview(device = PHONE)
 @Composable
 fun TranslateTextPage() {
     val context = LocalContext.current
@@ -67,10 +70,11 @@ fun TranslateTextPage() {
 
     // Speech-to-Text (Voice Recognition)
     val showSpeechRecognition = createSpeechRecognizer(
-        language = sourceLangTag,
+        languageTag = sourceLangTag,
         flipped = false,
         onSpeechResult = { sourceText = it })
 
+    // Translate when text changes
     LaunchedEffect(sourceText, sourceLangTag, targetLangTag) {
         if (sourceText.isNotBlank()) {
             delay(500) // Debounce input
@@ -80,6 +84,7 @@ fun TranslateTextPage() {
         }
     }
 
+    // Main layout
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
         modifier = Modifier
@@ -118,6 +123,7 @@ fun TranslateTextPage() {
             modifier = Modifier.weight(1f)
         )
 
+        // Control row
         Box(modifier = Modifier.fillMaxWidth()) {
             IconButton(
                 onClick = {
@@ -152,6 +158,15 @@ fun TranslateTextPage() {
     }
 }
 
+/**
+ * Language selection row with swap button.
+ *
+ * @param sourceLanguage Source language
+ * @param targetLanguage Target language
+ * @param onSourceLanguageSelected Callback for when source language is selected
+ * @param onTargetLanguageSelected Callback for when target language is selected
+ * @param onSwapLanguages Callback for when swap button is clicked
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LanguageSelectionRow(
@@ -184,6 +199,22 @@ fun LanguageSelectionRow(
     }
 }
 
+/**
+ * The main UI element for translating text
+ *
+ * Operates in 2 different modes: view and edit
+ *
+ * If no callback is provided for `onValueChange`, a simple text component will be displayed
+ * with some standard "copy" and "speak buttons"
+ *
+ * If a callback is provided for onValueChange, a text input will be displayed with an
+ * additional "paste" button
+ *
+ * @param currentText The current value of the text
+ * @param languageTag The language tag of the text
+ * @param modifier Modifier for the text box container
+ * @param onValueChange Callback for when the text changes
+ */
 @Composable
 fun TranslationTextBox(
     currentText: String,
@@ -228,6 +259,7 @@ fun TranslationTextBox(
                     .weight(1f)
             ) {
                 if (onValueChange == null) {
+                    // Show the current text (or a placeholder) if it is not editable
                     if (currentText.isEmpty()) {
                         Text(
                             text = "Translation in $languageName will appear here...",
@@ -242,6 +274,7 @@ fun TranslationTextBox(
                         )
                     }
                 } else {
+                    // Display an input field if it is editable
                     BasicTextField(
                         value = currentText,
                         onValueChange = { v -> onValueChange(v) },
@@ -252,6 +285,7 @@ fun TranslationTextBox(
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         decorationBox = { innerTextField ->
                             if (currentText.isEmpty()) {
+                                // Overlay a placeholder if there is no text
                                 Text(
                                     text = "Enter text in $languageName (or tap microphone)",
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
@@ -263,7 +297,7 @@ fun TranslationTextBox(
                 }
             }
 
-            // Additional control row
+            // Per box control row
             Row {
                 IconButton(
                     onClick = {
@@ -307,6 +341,7 @@ fun TranslationTextBox(
                     )
                 }
                 if (onValueChange != null) {
+                    // Show an additional "paste" button if the field is editable, right aligned
                     Spacer(modifier = Modifier.weight(1f))
                     IconButton(
                         onClick = {

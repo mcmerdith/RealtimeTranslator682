@@ -13,9 +13,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import com.cisc682.realtimetranslator.lib.TranslationLib
 
+/**
+ * Display a dropdown menu of all available languages
+ * @param selectedLanguageTag The currently selected language
+ * @param onLanguageSelected Callback when a new language is selected
+ */
 @Composable
 fun LanguageDropdown(
     selectedLanguageTag: String,
@@ -43,4 +49,10 @@ fun LanguageDropdown(
             }
         }
     }
+}
+
+@Preview
+@Composable
+private fun LanguageDropdownPreview() {
+    LanguageDropdown("en") { }
 }

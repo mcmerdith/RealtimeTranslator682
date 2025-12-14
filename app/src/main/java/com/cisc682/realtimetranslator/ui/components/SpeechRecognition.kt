@@ -45,25 +45,40 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 
+/**
+ * Create a speech recognizer function that can be used in a composable
+ *
+ * Handles permissions automatically
+ *
+ * @param languageTag The language to use for speech recognition
+ * @param flipped Whether the speech recognition dialog should be flipped vertically
+ * @param onSpeechResult The function to call when speech recognition is complete
+ * @return A function that can be called to start speech recognition
+ */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun createSpeechRecognizer(
-    language: String,
+    languageTag: String,
     flipped: Boolean,
     onSpeechResult: (String) -> Unit,
 ): () -> Unit {
     val context = LocalContext.current
+
     var active by rememberSaveable {mutableStateOf(false)}
     var showSpeechRecognition by rememberSaveable { mutableStateOf(false) }
-    val permissionState = rememberPermissionState(permission = Manifest.permission.RECORD_AUDIO, { granted ->
+
+    val permissionState = rememberPermissionState(permission = Manifest.permission.RECORD_AUDIO) { granted ->
         if (granted) {
+            // Automatically show the dialog if permission is granted
             showSpeechRecognition = true
         } else {
+            // Warn the user that speech recognition was denied
             Toast.makeText(context, "Microphone permission denied", Toast.LENGTH_LONG).show()
         }
-    })
+    }
 
     LaunchedEffect(active) {
+        // Whenever the active state changes, check for permission and show the dialog, or close it
         if (active) {
             if (permissionState.status.isGranted) {
                 showSpeechRecognition = true
@@ -75,22 +90,35 @@ fun createSpeechRecognizer(
         }
     }
 
+    // If the speech recognition component should be shown, show it
     if (showSpeechRecognition) {
         SpeechRecognition(
-            language = language,
+            language = languageTag,
             flipped = flipped,
             onSpeechResult = onSpeechResult,
             onClose = {
+                // Mark the component as ready to be closed
                 active = false
             }
         )
     }
 
+    // Return a function to initiate speech recognition
     return { ->
         active = true
     }
 }
 
+/**
+ * Internal component to actually perform speech recognition
+ *
+ * Caller must handle ensuring the appropriate permissions are granted
+ *
+ * @param language The language to use for speech recognition
+ * @param flipped Whether the speech recognition dialog should be flipped vertically
+ * @param onSpeechResult The function to call when speech recognition is complete
+ * @param onClose The function to call when the dialog is closed
+ */
 @Composable
 private fun SpeechRecognition(
     language: String,
@@ -100,12 +128,17 @@ private fun SpeechRecognition(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
     val speechRecognizer = remember { SpeechRecognizer.createSpeechRecognizer(context) }
     val speechRecognizerIntent = remember { Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH) }
+
+    // The text to display as a preview
     var partialText by remember { mutableStateOf("") }
     var isListening by remember { mutableStateOf(false) }
+    // Current volume of mic input for the animation
     var rmsDb by remember { mutableFloatStateOf(0f) }
 
+    // Set up the speech recognizer
     speechRecognizerIntent.putExtra(
         RecognizerIntent.EXTRA_LANGUAGE_MODEL,
         RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
@@ -117,6 +150,7 @@ private fun SpeechRecognition(
         2000L
     )
 
+    // Create the listener
     val recognitionListener = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) {
             isListening = true
@@ -142,10 +176,12 @@ private fun SpeechRecognition(
         override fun onResults(results: Bundle?) {
             isListening = false
             val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+            // Complete recognition if results returned, or setup the retry state
             if (matches != null && matches.isNotEmpty() && matches[0].isNotBlank()) {
                 partialText = matches[0]
                 onSpeechResult(matches[0])
                 coroutineScope.launch {
+                    // Give the UI some time to render a preview, and for the caller to use the result
                     delay(500)
                     onClose()
                 }
@@ -167,15 +203,18 @@ private fun SpeechRecognition(
     speechRecognizer.setRecognitionListener(recognitionListener)
 
     LaunchedEffect(Unit) {
+        // Start listening immediately
         speechRecognizer.startListening(speechRecognizerIntent)
     }
 
     DisposableEffect(Unit) {
+        // Clean up the recognizer
         onDispose {
             speechRecognizer.destroy()
         }
     }
 
+    // Animate the current mic volume
     val animatedScale by animateFloatAsState(
         targetValue = if (isListening) (1f + rmsDb / 8f).coerceIn(1f, 1.5f) else 1f,
         label = ""
