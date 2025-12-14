@@ -39,6 +39,7 @@ import com.cisc682.realtimetranslator.ui.components.DateFilterState
 import com.cisc682.realtimetranslator.ui.components.ReviewCard
 import com.cisc682.realtimetranslator.ui.components.ReviewControlBar
 import com.cisc682.realtimetranslator.ui.components.SpeechBubble
+import com.cisc682.realtimetranslator.ui.components.createTextToSpeech
 
 // ... (other imports)
 
@@ -49,6 +50,8 @@ data class ConversationSummary(
     val timestamp: String,
     val sourceLang: String,
     val targetLang: String,
+    val sourceLangTag: String, // Language tag for TTS (e.g., "en")
+    val targetLangTag: String, // Language tag for TTS (e.g., "fr")
     val previewText: String,
     var isStarred: Boolean,
     val rawTimestamp: Long
@@ -83,6 +86,8 @@ fun ReviewPage() {
                 "2 hours ago",
                 "🇺🇸 EN",
                 "🇫🇷 FR",
+                "en",
+                "fr",
                 "Where is the best croissant?",
                 true,
                 System.currentTimeMillis() - 7200000
@@ -93,6 +98,8 @@ fun ReviewPage() {
                 "Yesterday",
                 "🇺🇸 EN",
                 "🇯🇵 JP",
+                "en",
+                "ja",
                 "Can you help me find the station?",
                 false,
                 System.currentTimeMillis() - 86400000
@@ -103,6 +110,8 @@ fun ReviewPage() {
                 "Last Week",
                 "🇺🇸 EN",
                 "🇪🇸 ES",
+                "en",
+                "es",
                 "I would like to order paella.",
                 false,
                 System.currentTimeMillis() - 604800000
@@ -148,9 +157,12 @@ fun ReviewPage() {
         )
     } else {
         val messages = mockMessages[selectedConversationId] ?: emptyList()
+        val selectedConversation = conversations.find { it.id == selectedConversationId }
         ReviewDetailView(
             conversationId = selectedConversationId!!,
             messages = messages,
+            sourceLangTag = selectedConversation?.sourceLangTag ?: "en",
+            targetLangTag = selectedConversation?.targetLangTag ?: "en",
             onBackClick = { selectedConversationId = null }
         )
     }
@@ -333,8 +345,14 @@ fun ReviewListView(
 fun ReviewDetailView(
     conversationId: String,
     messages: List<ReviewMessage>,
+    sourceLangTag: String,
+    targetLangTag: String,
     onBackClick: () -> Unit
 ) {
+    // Create TTS instances for both languages
+    val speakSource = createTextToSpeech(sourceLangTag)
+    val speakTarget = createTextToSpeech(targetLangTag)
+
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("Conversation Details") },
@@ -350,10 +368,11 @@ fun ReviewDetailView(
         )
         LazyColumn(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(messages) { message ->
-                // Adapting to existing SpeechBubble API
+                // isMe = true means source language (e.g., English), false means target language (e.g., French)
+                val speak = if (message.isMe) speakSource else speakTarget
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = if (message.isMe) Arrangement.End else Arrangement.Start
@@ -365,8 +384,9 @@ fun ReviewDetailView(
                         SpeechBubble(
                             text = arrayOf(message.text),
                             alignment = if (message.isMe) Alignment.End else Alignment.Start,
-                            color = if (message.isMe) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer, // Light Blue for me, Gray for other
-                            textColor = if (message.isMe) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
+                            color = if (message.isMe) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                            textColor = if (message.isMe) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                            speak = speak
                         )
                     }
                 }
